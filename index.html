@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Physics Laboratory</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+        }
+        .experiment-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .experiment-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .disabled-card {
+            cursor: not-allowed;
+            background-color: #e2e8f0;
+            opacity: 0.6;
+        }
+        .disabled-card:hover {
+            transform: none;
+            box-shadow: none;
+        }
+        .tab-button {
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .tab-button.active {
+            background-color: #3b82f6; /* blue-600 */
+            color: white;
+        }
+
+        /* Modal Styles */
+        #modal-overlay {
+            transition: opacity 0.3s ease;
+        }
+        #modal-content {
+            transition: transform 0.3s ease;
+        }
+
+        /* Pendulum Styles */
+        .pendulum-container { width: 200px; height: 300px; position: relative; margin: 1rem auto; }
+        .pendulum-pivot { width: 20px; height: 20px; background: #4a5568; border-radius: 50%; position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 2; }
+        .pendulum-rod { width: 2px; background: #718096; position: absolute; left: 50%; top: 20px; transform-origin: top; }
+        .pendulum-bob { width: 40px; height: 40px; background: #2d3748; border-radius: 50%; position: absolute; left: -19px; bottom: 0; }
+        
+        /* Flywheel Styles */
+        .flywheel-container { display: flex; justify-content: center; align-items: flex-start; height: 300px; margin: 1rem auto; padding-top: 20px; }
+        #flywheel-assembly { position: relative; width: 150px; height: 150px; }
+        #flywheel-wheel { width: 150px; height: 150px; border: 15px solid #4a5568; border-radius: 50%; position: absolute; }
+        #flywheel-axle { width: 20px; height: 20px; background: #a0aec0; border-radius: 50%; position: absolute; top: 65px; left: 65px; }
+        #flywheel-mass { width: 30px; height: 30px; background: #718096; position: absolute; left: 180px; top: 0px; border-radius: 4px;}
+        #flywheel-string { width: 2px; background: #2d3748; height: 1px; position: absolute; top: 15px; left: 150px; transform-origin: left; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+
+    <div id="app" class="container mx-auto p-4 md:p-8">
+
+        <!-- Main Menu View -->
+        <div id="main-menu">
+            <header class="text-center mb-10">
+                <h1 class="text-4xl md:text-5xl font-bold text-slate-900">Virtual Physics Laboratory</h1>
+                <p class="text-lg text-slate-600 mt-2">Select an experiment to begin</p>
+            </header>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Experiment 1: Simple Pendulum -->
+                <div onclick="showExperiment('simple-pendulum')" class="experiment-card bg-white p-6 rounded-lg shadow-md cursor-pointer">
+                    <h2 class="text-xl font-semibold text-blue-600">1. Simple Pendulum</h2>
+                    <p class="text-slate-500 mt-2">Determine the acceleration due to gravity (g).</p>
+                </div>
+                <!-- Experiment 2: Flywheel -->
+                <div onclick="showExperiment('flywheel')" class="experiment-card bg-white p-6 rounded-lg shadow-md cursor-pointer">
+                    <h2 class="text-xl font-semibold text-blue-600">2. Moment of Inertia of Flywheel</h2>
+                    <p class="text-slate-500 mt-2">Determine the moment of inertia of a flywheel.</p>
+                </div>
+                <!-- Other experiments (disabled) -->
+                <div class="experiment-card disabled-card bg-white p-6 rounded-lg shadow-md"><h2 class="text-xl font-semibold text-gray-500">3. Bar Pendulum</h2><p class="text-slate-400 mt-2">Coming Soon.</p></div>
+                <div class="experiment-card disabled-card bg-white p-6 rounded-lg shadow-md"><h2 class="text-xl font-semibold text-gray-500">4. Study of the Moment of a Couple</h2><p class="text-slate-400 mt-2">Coming Soon.</p></div>
+                <div class="experiment-card disabled-card bg-white p-6 rounded-lg shadow-md"><h2 class="text-xl font-semibold text-gray-500">5. Torsion Pendulum</h2><p class="text-slate-400 mt-2">Coming Soon.</p></div>
+                <div class="experiment-card disabled-card bg-white p-6 rounded-lg shadow-md"><h2 class="text-xl font-semibold text-gray-500">6. Kater's Pendulum</h2><p class="text-slate-400 mt-2">Coming Soon.</p></div>
+                <div class="experiment-card disabled-card bg-white p-6 rounded-lg shadow-md"><h2 class="text-xl font-semibold text-gray-500">7. Linear Air Track</h2><p class="text-slate-400 mt-2">Coming Soon.</p></div>
+                <div class="experiment-card disabled-card bg-white p-6 rounded-lg shadow-md"><h2 class="text-xl font-semibold text-gray-500">8. Study of Gyroscope</h2><p class="text-slate-400 mt-2">Coming Soon.</p></div>
+                <div class="experiment-card disabled-card bg-white p-6 rounded-lg shadow-md"><h2 class="text-xl font-semibold text-gray-500">9. Inclined Plane Analysis</h2><p class="text-slate-400 mt-2">Coming Soon.</p></div>
+                <div class="experiment-card disabled-card bg-white p-6 rounded-lg shadow-md"><h2 class="text-xl font-semibold text-gray-500">10. Bifilar Pendulum</h2><p class="text-slate-400 mt-2">Coming Soon.</p></div>
+                <div class="experiment-card disabled-card bg-white p-6 rounded-lg shadow-md"><h2 class="text-xl font-semibold text-gray-500">11. Free Fall Study</h2><p class="text-slate-400 mt-2">Coming Soon.</p></div>
+            </div>
+        </div>
+
+        <!-- Back Button Template -->
+        <div id="back-button-template" class="hidden">
+            <button onclick="showMainMenu()" class="mr-4 p-2 rounded-full hover:bg-slate-200 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            </button>
+        </div>
+        
+        <!-- Experiment Views Container -->
+        <div id="experiments-container">
+            <!-- All experiment views will be dynamically hidden/shown here -->
+        </div>
+
+        <!-- Theory Modal -->
+        <div id="modal-overlay" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+            <div id="modal-content" class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto transform scale-95">
+                <div class="sticky top-0 bg-white border-b p-4 flex justify-between items-center z-10">
+                    <h2 id="modal-title" class="text-2xl font-bold text-slate-800">Theory</h2>
+                    <button id="modal-close-btn" class="text-slate-500 hover:text-slate-800">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+                <div id="modal-body" class="p-6 text-slate-700 leading-relaxed">
+                    <!-- Dynamic content goes here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- GLOBAL STATE & DOM ---
+        const mainMenu = document.getElementById('main-menu');
+        const experimentsContainer = document.getElementById('experiments-container');
+        const backButtonTemplate = document.getElementById('back-button-template').innerHTML;
+        const G_ACCELERATION = 9.81;
+
+        // Modal elements
+        const modalOverlay = document.getElementById('modal-overlay');
+        const modalContent = document.getElementById('modal-content');
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
+
+        // --- NAVIGATION & MODAL---
+        function showExperiment(experimentId) {
+            mainMenu.classList.add('hidden');
+            Array.from(experimentsContainer.children).forEach(el => el.classList.add('hidden'));
+            const expEl = document.getElementById(experimentId);
+            if (expEl) { expEl.classList.remove('hidden'); }
+
+            if (experimentId === 'simple-pendulum') initPendulumExperiment();
+            if (experimentId === 'flywheel') initFlywheelExperiment();
+        }
+
+        function showMainMenu() {
+            mainMenu.classList.remove('hidden');
+            Array.from(experimentsContainer.children).forEach(el => el.classList.add('hidden'));
+        }
+
+        function openModal(title, content) {
+            modalTitle.textContent = title;
+            modalBody.innerHTML = content;
+            modalOverlay.classList.remove('hidden');
+            modalOverlay.classList.add('flex');
+            setTimeout(() => {
+                modalOverlay.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeModal() {
+            modalOverlay.classList.add('opacity-0');
+            modalContent.classList.add('scale-95');
+            setTimeout(() => {
+                modalOverlay.classList.add('hidden');
+                modalOverlay.classList.remove('flex');
+            }, 300);
+        }
+        
+        modalCloseBtn.addEventListener('click', closeModal);
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) closeModal();
+        });
+        
+        // --- DYNAMIC EXPERIMENT LOADING ---
+        window.onload = () => {
+            loadExperiments();
+        };
+
+        function loadExperiments() {
+             experimentsContainer.innerHTML = `
+                ${simplePendulumHTML}
+                ${flywheelHTML}
+             `;
+        }
+
+        // --- UTILITY FUNCTIONS ---
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.textContent = message;
+            notification.className = 'fixed top-5 right-5 bg-red-500 text-white py-2 px-4 rounded-lg shadow-md z-50 animate-pulse';
+            document.body.appendChild(notification);
+            setTimeout(() => { notification.remove() }, 3000);
+        }
+
+        function linearRegression(x, y) {
+            const n = x.length;
+            if (n === 0) return { slope: 0, intercept: 0, r2: 0 };
+            let sum_x = 0, sum_y = 0, sum_xy = 0, sum_xx = 0, sum_yy = 0;
+            for (let i = 0; i < n; i++) {
+                sum_x += x[i]; sum_y += y[i]; sum_xy += (x[i] * y[i]);
+                sum_xx += (x[i] * x[i]); sum_yy += (y[i] * y[i]);
+            }
+            const denominator = (n * sum_xx - sum_x * sum_x);
+            if (denominator === 0) return { slope: 0, intercept: 0, r2: 0 };
+            const slope = (n * sum_xy - sum_x * sum_y) / denominator;
+            const intercept = (sum_y - slope * sum_x) / n;
+            const r2_denominator = Math.sqrt((n * sum_xx - sum_x * sum_x) * (n * sum_yy - sum_y * sum_y));
+            const r2 = r2_denominator === 0 ? 1 : Math.pow((n * sum_xy - sum_x * sum_y) / r2_denominator, 2);
+            return { slope, intercept, r2 };
+        }
+    </script>
+
+    <!-- Experiment 1: Simple Pendulum HTML & JS -->
+    <script>
+    const simplePendulumTheory = `
+        <div class="space-y-4">
+            <p>A simple pendulum consists of a point mass (bob) suspended from a fixed support by a light, inextensible string. When displaced from its equilibrium position, it oscillates in a vertical plane under the influence of gravity.</p>
+            <p>The period of oscillation (T), the time for one complete swing, is given by the formula:</p>
+            <div class="bg-slate-100 p-4 rounded-lg text-center my-4">
+                <p class="text-lg font-mono">T = 2π * √(L/g)</p>
+            </div>
+            <p>Where:</p>
+            <ul class="list-disc list-inside space-y-1 pl-4">
+                <li><b>T</b> is the period of oscillation (in seconds)</li>
+                <li><b>L</b> is the length of the pendulum (in meters)</li>
+                <li><b>g</b> is the acceleration due to gravity (in m/s²)</li>
+            </ul>
+            <p>To determine 'g' experimentally, we can rearrange the formula by squaring both sides:</p>
+            <div class="bg-slate-100 p-4 rounded-lg text-center my-4">
+                 <p class="text-lg font-mono">T² = (4π²/g) * L</p>
+            </div>
+            <p>This equation is in the form of a straight line, <b>y = mx</b>, where <b>y = L</b> and <b>x = T²</b>. By plotting a graph of Length (L) on the y-axis versus Period Squared (T²) on the x-axis, the slope (m) of the line will be:</p>
+            <div class="bg-slate-100 p-4 rounded-lg text-center my-4">
+                 <p class="text-lg font-mono">Slope = g / 4π²</p>
+            </div>
+             <p>Therefore, we can calculate the acceleration due to gravity 'g' from the slope of the graph:</p>
+             <div class="bg-slate-100 p-4 rounded-lg text-center my-4">
+                  <p class="text-lg font-bold text-blue-600 font-mono">g = 4π² * Slope</p>
+            </div>
+        </div>
+    `;
+
+    const simplePendulumHTML = `
+    <div id="simple-pendulum" class="hidden">
+        <header class="flex items-center mb-8">${backButtonTemplate}
+            <div><h1 class="text-3xl font-bold text-slate-900">Simple Pendulum Experiment</h1><p class="text-md text-slate-600">Determine the value of 'g'</p></div>
+        </header>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg"><h2 class="text-xl font-semibold mb-4 border-b pb-2">Controls</h2>
+                <div class="flex border border-slate-300 rounded-lg p-1 mb-4 bg-slate-100">
+                    <button id="sp-sim-mode-btn" class="tab-button w-1/2 rounded-md py-1 text-sm font-medium">Simulation</button>
+                    <button id="sp-manual-mode-btn" class="tab-button w-1/2 rounded-md py-1 text-sm font-medium">Manual Entry</button>
+                </div>
+                <div id="sp-simulation-controls">
+                    <div class="pendulum-container"><div class="pendulum-pivot"></div><div id="pendulum-rod" class="pendulum-rod" style="height: 150px;"><div class="pendulum-bob"></div></div></div>
+                    <div class="space-y-4">
+                        <div><label for="sp-length" class="block text-sm font-medium text-slate-700">Length (L): <span id="sp-length-value">1.50</span> m</label><input type="range" id="sp-length" min="0.5" max="2.5" step="0.1" value="1.5" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"></div>
+                        <div><label for="sp-environment" class="block text-sm font-medium text-slate-700">Environment</label><select id="sp-environment" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"><option value="unknown">Unknown Planet</option><option value="9.81">Earth (9.81 m/s²)</option><option value="1.62">Moon (1.62 m/s²)</option></select></div>
+                    </div>
+                </div>
+                <div id="sp-manual-entry-controls" class="hidden"><div class="space-y-4 py-4"><div><label for="sp-manual-length" class="block text-sm font-medium text-slate-700">Length (L) in meters</label><input type="number" id="sp-manual-length" placeholder="e.g., 1.5" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm"></div><div><label for="sp-manual-time" class="block text-sm font-medium text-slate-700">Time for 'n' oscillations (t) in seconds</label><input type="number" id="sp-manual-time" placeholder="e.g., 38.9" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm"></div></div></div>
+                <div class="mt-4"><label for="sp-oscillations" class="block text-sm font-medium text-slate-700">Oscillations (n): <span id="sp-oscillations-value">20</span></label><input type="range" id="sp-oscillations" min="10" max="50" step="1" value="20" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"></div>
+                <div class="mt-6 grid grid-cols-1 gap-2">
+                    <button id="sp-add-reading-btn" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2">Add Reading</button>
+                    <button id="sp-theory-btn" class="w-full bg-teal-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-teal-600 transition flex items-center justify-center gap-2">View Theory</button>
+                    <button id="sp-reset-btn" class="w-full bg-slate-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-slate-700 transition flex items-center justify-center gap-2">Reset</button>
+                </div>
+            </div>
+            <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="h-80"><h2 class="text-xl font-semibold mb-4 border-b pb-2">Observation Table</h2><div class="overflow-y-auto h-full"><table class="w-full text-sm text-left"><thead class="text-xs text-slate-700 uppercase bg-slate-100 sticky top-0"><tr><th class="px-4 py-2">S.No</th><th class="px-4 py-2">L (m)</th><th class="px-4 py-2">t (s)</th><th class="px-4 py-2">T (s)</th><th class="px-4 py-2">T² (s²)</th></tr></thead><tbody id="sp-readings-table"></tbody></table></div></div><div class="h-80"><h2 class="text-xl font-semibold mb-4 border-b pb-2">Result</h2><div id="sp-result-display" class="bg-slate-50 p-4 rounded-lg text-center h-full flex flex-col justify-center"></div></div></div>
+                <div class="mt-6"><h2 class="text-xl font-semibold mb-4 border-b pb-2">Graph: Length vs T²</h2><div class="bg-slate-50 p-4 rounded-lg"><canvas id="sp-chart"></canvas></div></div>
+            </div>
+        </div>
+    </div>`;
+
+    let sp_state = {};
+    function initPendulumExperiment() {
+        sp_state = { readings: [], chart: null, mode: 'simulation', gravity: 0, dom: { /* DOM elements */ } };
+        const D = sp_state.dom;
+        D.lengthSlider = document.getElementById('sp-length'); D.environmentSelect = document.getElementById('sp-environment'); D.oscillationsSlider = document.getElementById('sp-oscillations'); D.lengthValueSpan = document.getElementById('sp-length-value'); D.oscillationsValueSpan = document.getElementById('sp-oscillations-value'); D.addReadingBtn = document.getElementById('sp-add-reading-btn'); D.resetBtn = document.getElementById('sp-reset-btn'); D.readingsTable = document.getElementById('sp-readings-table'); D.resultDisplay = document.getElementById('sp-result-display'); D.pendulumRod = document.getElementById('pendulum-rod'); D.simModeBtn = document.getElementById('sp-sim-mode-btn'); D.manualModeBtn = document.getElementById('sp-manual-mode-btn'); D.simulationControls = document.getElementById('sp-simulation-controls'); D.manualEntryControls = document.getElementById('sp-manual-entry-controls'); D.manualLengthInput = document.getElementById('sp-manual-length'); D.manualTimeInput = document.getElementById('sp-manual-time'); D.chartCanvas = document.getElementById('sp-chart'); D.theoryBtn = document.getElementById('sp-theory-btn');
+
+        D.simModeBtn.addEventListener('click', () => sp_setMode('simulation')); D.manualModeBtn.addEventListener('click', () => sp_setMode('manual'));
+        D.lengthSlider.addEventListener('input', () => { D.lengthValueSpan.textContent = parseFloat(D.lengthSlider.value).toFixed(2); sp_updatePendulumAnimation(); });
+        D.environmentSelect.addEventListener('change', () => { sp_state.readings = []; sp_setSimulationGravity(); sp_updateUI(); });
+        D.oscillationsSlider.addEventListener('input', () => { D.oscillationsValueSpan.textContent = D.oscillationsSlider.value; });
+        D.addReadingBtn.addEventListener('click', sp_addReading); D.resetBtn.addEventListener('click', initPendulumExperiment);
+        D.theoryBtn.addEventListener('click', () => openModal('Simple Pendulum Theory', simplePendulumTheory));
+        
+        D.environmentSelect.value = 'unknown';
+        sp_setMode('simulation'); sp_setSimulationGravity(); sp_initChart(); sp_updateUI();
+    }
+    
+    function sp_setMode(mode) { /* ... same as before ... */ sp_state.mode = mode; const D = sp_state.dom; const isSim = mode === 'simulation'; D.simulationControls.classList.toggle('hidden', !isSim); D.manualEntryControls.classList.toggle('hidden', isSim); D.simModeBtn.classList.toggle('active', isSim); D.manualModeBtn.classList.toggle('active', !isSim); }
+    function sp_setSimulationGravity() { /* ... same as before ... */ const D = sp_state.dom; const envVal = D.environmentSelect.value; sp_state.gravity = (envVal === 'unknown') ? (5 + Math.random() * 15) : parseFloat(envVal); sp_updatePendulumAnimation(); }
+    function sp_addReading() { /* ... same as before ... */ const D = sp_state.dom; const n = parseInt(D.oscillationsSlider.value); let L, t_measured; if (sp_state.mode === 'simulation') { L = parseFloat(D.lengthSlider.value); const T_theoretical = 2 * Math.PI * Math.sqrt(L / sp_state.gravity); t_measured = (n * T_theoretical) * (1 + (Math.random() - 0.5) * 0.04); sp_playPendulumAnimation(); } else { L = parseFloat(D.manualLengthInput.value); t_measured = parseFloat(D.manualTimeInput.value); if (isNaN(L) || isNaN(t_measured) || L <= 0 || t_measured <= 0) { showNotification('Please enter valid positive numbers.'); return; } } if (sp_state.readings.some(r => r.L === L)) { showNotification('A reading for this length already exists.'); return; } const T = t_measured / n; sp_state.readings.push({ sno: 0, L: L, t: t_measured, T: T, T2: T * T }); sp_state.readings.sort((a, b) => a.L - b.L).forEach((r, i) => r.sno = i + 1); sp_updateUI(); if (sp_state.mode === 'manual') { D.manualLengthInput.value = D.manualTimeInput.value = ''; D.manualLengthInput.focus(); } }
+    
+    function sp_updateUI() { /* ... same as before, with minor tweaks ... */ const D = sp_state.dom; D.readingsTable.innerHTML = sp_state.readings.length === 0 ? `<tr><td colspan="5" class="p-4 text-center text-slate-500">No readings taken.</td></tr>` : sp_state.readings.map(r => `<tr class="bg-white border-b"><td class="px-4 py-2">${r.sno}</td><td class="px-4 py-2">${r.L.toFixed(2)}</td><td class="px-4 py-2">${r.t.toFixed(2)}</td><td class="px-4 py-2">${r.T.toFixed(3)}</td><td class="px-4 py-2">${r.T2.toFixed(3)}</td></tr>`).join(''); const dataPoints = sp_state.readings.map(r => ({ y: r.L, x: r.T2 })); sp_state.chart.data.datasets[0].data = dataPoints; if (sp_state.readings.length >= 2) { const { slope, intercept } = linearRegression(sp_state.readings.map(r => r.T2), sp_state.readings.map(r => r.L)); const xVals = sp_state.readings.map(r => r.T2); const minX = Math.min(...xVals), maxX = Math.max(...xVals); sp_state.chart.data.datasets[1].data = [{ x: minX, y: slope * minX + intercept }, { x: maxX, y: slope * maxX + intercept }]; } else { sp_state.chart.data.datasets[1].data = []; } sp_state.chart.update(); if (sp_state.readings.length < 2) { D.resultDisplay.innerHTML = `<p class="text-slate-500">Add at least two readings.</p>`; return; } const { slope, r2 } = linearRegression(sp_state.readings.map(r => r.T2), sp_state.readings.map(r => r.L)); const g_exp = slope * 4 * Math.PI * Math.PI; const trueG_HTML = (sp_state.mode === 'simulation' && D.environmentSelect.value !== 'unknown') ? `<p class="flex justify-between"><strong>True Gravity (g):</strong> <span>${sp_state.gravity.toFixed(2)} m/s²</span></p>` : ''; D.resultDisplay.innerHTML = `<div class="space-y-3 text-left"><p class="flex justify-between"><strong>Graph Slope (L/T²):</strong> <span>${slope.toFixed(4)}</span></p>${trueG_HTML}<p class="flex justify-between text-blue-600 font-bold text-lg"><strong>Calculated g:</strong> <span>${g_exp.toFixed(2)} m/s²</span></p><p class="flex justify-between text-sm text-slate-500"><strong>Correlation (R²):</strong> <span>${r2.toFixed(4)}</span></p></div>`; }
+
+    function sp_initChart() {
+        if (sp_state.chart) sp_state.chart.destroy();
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        sp_state.chart = new Chart(sp_state.dom.chartCanvas.getContext('2d'), {
+            type: 'scatter',
+            data: { datasets: [ { label: 'Experimental Data', data: [], backgroundColor: 'rgba(59, 130, 246, 0.7)', pointRadius: 6, pointHoverRadius: 8 }, { label: 'Line of Best Fit', data: [], borderColor: 'rgb(239, 68, 68)', type: 'line', fill: false, pointRadius: 0, borderWidth: 2 } ]},
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: { x: { title: { display: true, text: 'Period Squared, T² (s²)', font: { size: 14 } }, grid: { color: '#e2e8f0' } }, y: { title: { display: true, text: 'Length, L (m)', font: { size: 14 } }, grid: { color: '#e2e8f0' } } },
+                plugins: { tooltip: {
+                    callbacks: { label: (context) => `(T²: ${context.parsed.x.toFixed(3)}, L: ${context.parsed.y.toFixed(3)})` },
+                    displayColors: false, backgroundColor: '#1e293b', padding: 10, titleFont: { size: 16 }, bodyFont: { size: 14 }
+                }}
+            }
+        });
+    }
+
+    function sp_updatePendulumAnimation() { /* ... same as before ... */ const D = sp_state.dom; const L = parseFloat(D.lengthSlider.value); if (sp_state.gravity <= 0) return; const rodHeight = 100 + (L - 0.5) * (150 / 2.0); D.pendulumRod.style.height = `${rodHeight}px`; D.pendulumRod.style.animationDuration = `${2 * Math.PI * Math.sqrt(L / sp_state.gravity)}s`; }
+    function sp_playPendulumAnimation() { /* ... same as before ... */ const D = sp_state.dom; D.pendulumRod.style.animation = 'none'; D.pendulumRod.offsetHeight; const period = parseFloat(D.pendulumRod.style.animationDuration) || 2; D.pendulumRod.style.animation = `sp_swing ${period}s ease-in-out 0s 2`; }
+    const sp_styleSheet = document.createElement("style"); sp_styleSheet.innerText = `@keyframes sp_swing { 0% { transform: rotate(20deg); } 50% { transform: rotate(-20deg); } 100% { transform: rotate(20deg); } }`; document.head.appendChild(sp_styleSheet);
+    </script>
+
+    <!-- Experiment 2: Flywheel HTML & JS -->
+    <script>
+    const flywheelTheory = `
+        <div class="space-y-4">
+            <p>A flywheel is a heavy wheel that stores rotational energy. Its resistance to changes in rotational speed is quantified by its Moment of Inertia (I).</p>
+            <p>In this experiment, a mass (m) is attached to a string wrapped around the flywheel's axle (radius r). When released, the mass falls a height (h), causing the wheel to rotate.</p>
+            <p>The calculation for the Moment of Inertia (I) is derived from energy conservation and torque principles. A common formula used for this apparatus is:</p>
+            <div class="bg-slate-100 p-4 rounded-lg text-center my-4 overflow-x-auto">
+                <p class="text-lg font-mono">I = [ m*r²*(g*t² - 2h)*n₂ ] / [ 2*h*(n₁ + n₂) ]</p>
+            </div>
+            <p>Where:</p>
+            <ul class="list-disc list-inside space-y-1 pl-4">
+                <li><b>I</b> is the Moment of Inertia (in kg·m²)</li>
+                <li><b>m</b> is the hanging mass (in kg)</li>
+                <li><b>r</b> is the radius of the axle (in meters)</li>
+                <li><b>g</b> is the acceleration due to gravity (9.81 m/s²)</li>
+                <li><b>t</b> is the time taken for the mass to fall (in seconds)</li>
+                <li><b>h</b> is the height the mass falls (in meters), calculated from <b>h = 2πrn₁</b></li>
+                <li><b>n₁</b> is the number of windings of the string on the axle</li>
+                <li><b>n₂</b> is the number of rotations the flywheel makes after the string has unwound, until it stops due to friction.</li>
+            </ul>
+        </div>
+    `;
+
+    const flywheelHTML = `
+    <div id="flywheel" class="hidden">
+        <header class="flex items-center mb-8">${backButtonTemplate}
+            <div><h1 class="text-3xl font-bold text-slate-900">Moment of Inertia of a Flywheel</h1><p class="text-md text-slate-600">Determine the value of 'I'</p></div>
+        </header>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg"><h2 class="text-xl font-semibold mb-4 border-b pb-2">Controls</h2>
+                <div class="flex border border-slate-300 rounded-lg p-1 mb-4 bg-slate-100">
+                    <button id="fw-sim-mode-btn" class="tab-button w-1/2 rounded-md py-1 text-sm font-medium">Simulation</button>
+                    <button id="fw-manual-mode-btn" class="tab-button w-1/2 rounded-md py-1 text-sm font-medium">Manual Entry</button>
+                </div>
+                <div id="fw-simulation-controls">
+                    <div class="flywheel-container"><div id="flywheel-assembly"><div id="flywheel-wheel"></div><div id="flywheel-axle"></div></div><div id="flywheel-string"><div id="flywheel-mass"></div></div></div>
+                    <div class="space-y-4">
+                        <div><label for="fw-model" class="block text-sm font-medium text-slate-700">Flywheel Model</label><select id="fw-model" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm"><option value="unknown">Unknown Model</option><option value="A">Model A (Light)</option><option value="B">Model B (Heavy)</option></select></div>
+                        <div><label for="fw-mass" class="block text-sm font-medium text-slate-700">Hanging Mass (m): <span id="fw-mass-value">250</span> g</label><input type="range" id="fw-mass" min="50" max="500" step="10" value="250" class="w-full h-2 bg-slate-200 rounded-lg"></div>
+                    </div>
+                </div>
+                <div id="fw-manual-entry-controls" class="hidden space-y-3 py-2"><label class="block text-sm font-medium text-slate-700">Enter Measured Values:</label><input type="number" id="fw-manual-mass" placeholder="Mass (g)" class="w-full px-3 py-2 border rounded-md"><input type="number" id="fw-manual-t" placeholder="Time to fall, t (s)" class="w-full px-3 py-2 border rounded-md"><input type="number" id="fw-manual-n2" placeholder="Rotations after fall, n₂" class="w-full px-3 py-2 border rounded-md"></div>
+                <div class="space-y-4 mt-4">
+                    <div><label for="fw-radius" class="block text-sm font-medium text-slate-700">Axle Radius (r): <span id="fw-radius-value">2.0</span> cm</label><input type="range" id="fw-radius" min="1" max="5" step="0.1" value="2.0" class="w-full h-2 bg-slate-200 rounded-lg"></div>
+                    <div><label for="fw-n1" class="block text-sm font-medium text-slate-700">No. of Windings (n₁): <span id="fw-n1-value">10</span></label><input type="range" id="fw-n1" min="5" max="20" step="1" value="10" class="w-full h-2 bg-slate-200 rounded-lg"></div>
+                </div>
+                <div class="mt-6 grid grid-cols-1 gap-2">
+                    <button id="fw-add-reading-btn" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition">Add Reading</button>
+                    <button id="fw-theory-btn" class="w-full bg-teal-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-teal-600 transition">View Theory</button>
+                    <button id="fw-reset-btn" class="w-full bg-slate-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-slate-700 transition">Reset</button>
+                </div>
+            </div>
+            <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg"><div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div><h2 class="text-xl font-semibold mb-4 border-b pb-2">Observation Table</h2><div class="overflow-x-auto h-96"><table class="w-full text-sm text-left"><thead class="text-xs text-slate-700 uppercase bg-slate-100 sticky top-0"><tr><th class="px-2 py-2">m (kg)</th><th class="px-2 py-2">h (m)</th><th class="px-2 py-2">t (s)</th><th class="px-2 py-2">n₂</th><th class="px-2 py-2">I (kg·m²)</th></tr></thead><tbody id="fw-readings-table"></tbody></table></div></div>
+                <div><h2 class="text-xl font-semibold mb-4 border-b pb-2">Result</h2><div id="fw-result-display" class="bg-slate-50 p-4 rounded-lg text-center h-full flex flex-col justify-center"></div></div>
+            </div></div>
+        </div>
+    </div>`;
+
+    let fw_state = {};
+    const FLYWHEEL_MODELS = { 'A': { I: 0.005, Tf: 0.002 }, 'B': { I: 0.015, Tf: 0.004 }, 'unknown': { I: 0, Tf: 0 } };
+    function initFlywheelExperiment() {
+        fw_state = { readings: [], mode: 'simulation', dom: { /* DOM elements */ } };
+        const D = fw_state.dom;
+        D.simModeBtn = document.getElementById('fw-sim-mode-btn'); D.manualModeBtn = document.getElementById('fw-manual-mode-btn'); D.simulationControls = document.getElementById('fw-simulation-controls'); D.manualEntryControls = document.getElementById('fw-manual-entry-controls'); D.modelSelect = document.getElementById('fw-model'); D.massSlider = document.getElementById('fw-mass'); D.massValue = document.getElementById('fw-mass-value'); D.radiusSlider = document.getElementById('fw-radius'); D.radiusValue = document.getElementById('fw-radius-value'); D.n1Slider = document.getElementById('fw-n1'); D.n1Value = document.getElementById('fw-n1-value'); D.manualMass = document.getElementById('fw-manual-mass'); D.manualT = document.getElementById('fw-manual-t'); D.manualN2 = document.getElementById('fw-manual-n2'); D.addBtn = document.getElementById('fw-add-reading-btn'); D.resetBtn = document.getElementById('fw-reset-btn'); D.table = document.getElementById('fw-readings-table'); D.result = document.getElementById('fw-result-display'); D.wheel = document.getElementById('flywheel-wheel'); D.mass = document.getElementById('flywheel-mass'); D.theoryBtn = document.getElementById('fw-theory-btn');
+
+        D.simModeBtn.addEventListener('click', () => fw_setMode('simulation')); D.manualModeBtn.addEventListener('click', () => fw_setMode('manual'));
+        D.addBtn.addEventListener('click', fw_addReading); D.resetBtn.addEventListener('click', initFlywheelExperiment);
+        D.theoryBtn.addEventListener('click', () => openModal('Flywheel Moment of Inertia Theory', flywheelTheory));
+        
+        D.modelSelect.addEventListener('change', () => { fw_state.readings = []; fw_setFlywheelModel(); fw_updateUI(); });
+        D.massSlider.addEventListener('input', () => D.massValue.textContent = D.massSlider.value);
+        D.radiusSlider.addEventListener('input', () => D.radiusValue.textContent = parseFloat(D.radiusSlider.value).toFixed(1));
+        D.n1Slider.addEventListener('input', () => D.n1Value.textContent = D.n1Slider.value);
+
+        fw_setMode('simulation'); fw_setFlywheelModel(); fw_updateUI();
+    }
+
+    function fw_setMode(mode) { /* ... same as before ... */ fw_state.mode = mode; const D = fw_state.dom; const isSim = mode === 'simulation'; D.simulationControls.classList.toggle('hidden', !isSim); D.manualEntryControls.classList.toggle('hidden', isSim); D.simModeBtn.classList.toggle('active', isSim); D.manualModeBtn.classList.toggle('active', !isSim); }
+    function fw_setFlywheelModel() { /* ... same as before ... */ const modelKey = fw_state.dom.modelSelect.value; if (modelKey === 'unknown') { FLYWHEEL_MODELS.unknown.I = 0.003 + Math.random() * 0.015; FLYWHEEL_MODELS.unknown.Tf = 0.001 + Math.random() * 0.005; } fw_state.model = FLYWHEEL_MODELS[modelKey]; }
+    
+    function fw_addReading() { /* ... same as before ... */ const D = fw_state.dom; let m_kg, r_m, n1, t, n2; r_m = parseFloat(D.radiusSlider.value) / 100; n1 = parseInt(D.n1Slider.value); const h = 2 * Math.PI * r_m * n1; if (fw_state.mode === 'simulation') { m_kg = parseFloat(D.massSlider.value) / 1000; const {I, Tf} = fw_state.model; const a = (m_kg * G_ACCELERATION - Tf / r_m) / (m_kg + I / (r_m * r_m)); if (a <= 0) { showNotification("Mass is too light. Add more mass."); return; } t = Math.sqrt(2 * h / a); const omega = (a * t) / r_m; const theta_after = (I * omega * omega) / (2 * Tf); n2 = theta_after / (2 * Math.PI); t *= (1 + (Math.random() - 0.5) * 0.03); n2 *= (1 + (Math.random() - 0.5) * 0.03); fw_animate(t, n2, omega); } else { m_kg = parseFloat(D.manualMass.value) / 1000; t = parseFloat(D.manualT.value); n2 = parseFloat(D.manualN2.value); if (isNaN(m_kg) || isNaN(t) || isNaN(n2) || m_kg <= 0 || t <= 0 || n2 <= 0) { showNotification('Please enter valid positive numbers.'); return; } } const term1 = 2 * h * (n1 + n2); const term2 = m_kg * r_m * r_m * (G_ACCELERATION * t * t - 2 * h) * n2; if (term1 === 0) { showNotification("Invalid parameters leading to division by zero."); return; } const I_calc = term2 / term1; if (I_calc <= 0) { showNotification("Non-physical result. Check inputs."); return; } fw_state.readings.push({ m: m_kg, h: h, t: t, n2: n2, I: I_calc }); fw_updateUI(); }
+    
+    function fw_updateUI() { /* ... same as before ... */ const D = fw_state.dom; D.table.innerHTML = fw_state.readings.length === 0 ? `<tr><td colspan="5" class="p-4 text-center text-slate-500">No readings taken.</td></tr>` : fw_state.readings.map(r => `<tr class="bg-white border-b"><td class="px-2 py-2">${r.m.toFixed(3)}</td><td class="px-2 py-2">${r.h.toFixed(3)}</td><td class="px-2 py-2">${r.t.toFixed(2)}</td><td class="px-2 py-2">${r.n2.toFixed(1)}</td><td class="px-2 py-2 font-medium">${r.I.toExponential(3)}</td></tr>`).join(''); if (fw_state.readings.length === 0) { D.result.innerHTML = `<p class="text-slate-500">Add readings to calculate 'I'.</p>`; return; } const sumI = fw_state.readings.reduce((acc, r) => acc + r.I, 0); const avgI = sumI / fw_state.readings.length; const trueI_HTML = (fw_state.mode === 'simulation' && D.modelSelect.value !== 'unknown') ? `<p class="flex justify-between"><strong>True I:</strong> <span>${fw_state.model.I.toExponential(3)} kg·m²</span></p>` : ''; D.result.innerHTML = `<div class="space-y-3 text-left">${trueI_HTML}<p class="flex justify-between text-blue-600 font-bold text-lg"><strong>Average Calc. I:</strong> <span>${avgI.toExponential(3)} kg·m²</span></p><p class="flex justify-between text-sm text-slate-500"><strong>Readings:</strong> <span>${fw_state.readings.length}</span></p></div>`; }
+    function fw_animate(t_fall, n2, omega_max) { /* ... same as before ... */ const D = fw_state.dom; const r_m = parseFloat(D.radiusSlider.value) / 100; const n1 = parseInt(D.n1Slider.value); const h = 2 * Math.PI * r_m * n1; const final_pos = (h / (r_m * 0.1)) + 20; const t_stop = omega_max > 0 ? (2 * n2 * 2 * Math.PI) / omega_max : 0; D.mass.animate([ { top: '0px' }, { top: `${final_pos}px` } ], { duration: t_fall * 1000, easing: 'ease-in' }); D.wheel.animate([ { transform: 'rotate(0deg)' }, { transform: `rotate(${360 * (n1 + n2)}deg)` } ], { duration: (t_fall + t_stop) * 1000, easing: 'ease-in-out' }); }
+    </script>
+
+</body>
+</html>
+
